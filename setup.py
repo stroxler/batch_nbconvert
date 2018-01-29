@@ -1,6 +1,6 @@
 from setuptools import setup
 
-PACKAGE = 'tdx'
+PACKAGE = 'batch_nbconvert'
 
 
 def readme():
@@ -22,13 +22,19 @@ setup(name=PACKAGE,
           'License :: OSI Approved :: MIT License',
           'Programming Language :: Python :: 3.6',
       ],
+      entry_points={
+          "console_scripts": [
+              'batch_nbconvert = batch_nbconvert.cli:main',
+          ]
+      },
       keywords='',
-      url='https://github.com/stroxler/tdx',
+      url='https://github.com/stroxler/batch_nbconvert',
       author='Steven Troxler',
       author_email='steven.troxler@gmail.com',
       license='MIT',
       packages=[PACKAGE],
-      install_requires=['plumbum', 'tdx'],
+      install_requires=['plumbum', 'tdx', 'fire',
+                        'nbstripout', 'nbconvert'],
       tests_require=['pytest'],
       include_package_data=True,
       zip_safe=False)
