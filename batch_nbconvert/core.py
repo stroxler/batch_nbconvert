@@ -50,7 +50,8 @@ def strip_inplace(directory: str,
 def exec_copy(src_dir: str,
               dst_dir: str,
               parallel: int = 1,
-              clobber: bool = False) -> None:
+              clobber: bool = False,
+              cell_timeout: int = 120) -> None:
     """
     Given a git repository at `src_dir`, copy all the contents
     to `dst_dir` to make a fresh git repo. Then, run all of the
@@ -68,8 +69,10 @@ def exec_copy(src_dir: str,
     # do the conversion
     notebooks = _find_notebooks(dst_dir)
     with ThreadPoolExecutor(parallel) as pool:
-        list(pool.map(lambda nb: exec_file_inplace(nb, 'notebook'),
-                      notebooks))
+        list(pool.map(
+            lambda nb: exec_file_inplace(nb, 'notebook', cell_timeout),
+            notebooks[::-1]
+        ))
     # save a manifest
     sha = _get_sha(src_dir)
     logger.info(f"Writing manifest indicating sha of {sha}")
@@ -115,10 +118,12 @@ def exec_file_copy(notebook: str,
 
 
 def exec_file_inplace(notebook: str,
-                      output_type: str) -> None:
+                      output_type: str,
+                      cell_timeout: int = 120) -> None:
     logger.info(f"Converting {notebook} to {output_type} inplace")
     cmd.jupyter['nbconvert', '--execute', '--inplace',
                 '--to', output_type,
+                '--ExecutePreprocessor.timeout=' + str(cell_timeout),
                 notebook]()
 
 
