@@ -101,9 +101,7 @@ def _find_and_set_up_dest(relative_path, dst_dir):
 
 def strip_file_inplace(notebook: str) -> None:
     logger.info(f"Stripping output from {notebook}")
-    content = cmd.python['-m', 'nbstripout', notebook]()
-    with open(notebook, 'w') as f:
-        f.write(content)
+    cmd.python['-m', 'nbstripout', notebook]()
 
 
 def exec_file_copy(notebook: str,
@@ -126,7 +124,18 @@ def exec_file_inplace(notebook: str,
 
 def copy_repo(src_dir: str, dst_dir: str, clobber: bool=False):
     _clear_directory(dst_dir, clobber)
-    shutil.copytree(src_dir, dst_dir, ignore=_ignore_git_stuff)
+    if not os.path.isdir(dst_dir):
+        os.makedirs(dst_dir)
+    for f in os.listdir(src_dir):
+        if f == '.git':
+            continue
+        if os.path.isdir(os.path.join(src_dir, f)):
+            shutil.copytree(os.path.join(src_dir, f),
+                            os.path.join(dst_dir, f),
+                            ignore=_ignore_git_stuff)
+        else:
+            shutil.copy2(os.path.join(src_dir, f),
+                         os.path.join(dst_dir, f))
     with local.cwd(dst_dir):
         cmd.git["init"]
 
@@ -161,8 +170,19 @@ def _clear_directory(directory: str,
                      clobber: bool) -> None:
     if os.path.exists(directory):
         if clobber:
-            logger.info(f"Removing existing directory {directory}")
-            shutil.rmtree(directory)
+            if os.path.isdir(directory):
+                logger.info(f"Removing existing directory {directory}")
+                for f in os.listdir(directory):
+                    if f == '.git':
+                        continue
+                    path = os.path.join(directory, f)
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.unlink(path)
+            else:
+                logger.info(f"Removing existing file {directory}")
+                os.unlink(directory)
         else:
             raise ValueError('If `clobber` is not set to True, the '
                              f'target directory {directory} must not '
